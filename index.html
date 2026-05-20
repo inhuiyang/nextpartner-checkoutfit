@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI 면접복장 점검 — 넥스트파트너</title>
+
+  <!-- Pretendard 폰트 -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" />
+  <!-- Tailwind 빌드 아웃풋 -->
+  <link rel="stylesheet" href="dist/index.css" />
+
+  <!-- Lucide 아이콘 -->
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+
+  <style>
+    html, body { height: 100%; overflow: hidden; }
+    body { display: flex; flex-direction: column; }
+
+    #chat-messages::-webkit-scrollbar { width: 6px; }
+    #chat-messages::-webkit-scrollbar-track { background: transparent; }
+    #chat-messages::-webkit-scrollbar-thumb { background: #e5e5e5; border-radius: 999px; }
+    #chat-messages { scrollbar-width: thin; scrollbar-color: #e5e5e5 transparent; }
+
+    @keyframes msg-in {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .msg-in { animation: msg-in 0.22s ease-out; }
+
+    .td {
+      display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+      background: #999; animation: td-bounce 1.2s ease-in-out infinite;
+    }
+    .td:nth-child(2) { animation-delay: 0.2s; }
+    .td:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes td-bounce {
+      0%, 80%, 100% { transform: translateY(0); }
+      40%            { transform: translateY(-6px); }
+    }
+
+    .np-toast-wrap { bottom: 80px; }
+    @media (min-width: 768px) { .np-toast-wrap { bottom: 32px; } }
+
+    .tool-nav-scroll::-webkit-scrollbar { display: none; }
+    .tool-nav-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+
+    /* 점수 바 애니메이션 */
+    @keyframes bar-fill {
+      from { width: 0%; }
+    }
+    .score-bar-fill { animation: bar-fill 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+
+    /* 총점 원형 점수 애니메이션 */
+    @keyframes score-pop {
+      from { transform: scale(0.5); opacity: 0; }
+      to   { transform: scale(1); opacity: 1; }
+    }
+    .score-pop { animation: score-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+
+    .np-textfield-wrap { display: flex; flex-direction: column; gap: 6px; }
+    .np-textfield-label { font-size: 1rem; font-weight: 600; color: #333; }
+    .np-textfield {
+      width: 100%; padding: 12px 16px; font-family: inherit; font-size: 1.125rem;
+      color: #1a1a1a; background: #fff; border: 1px solid #e5e5e5;
+      border-radius: 8px; outline: none; transition: all 0.12s ease-out;
+    }
+    .np-textfield:focus { border-color: #ff7f65; box-shadow: 0 0 0 3px rgba(255,184,159,0.25); }
+    .np-textfield::placeholder { color: #999; }
+    .np-textfield-hint { font-size: 0.875rem; color: #999; }
+  </style>
+</head>
+
+<body>
+
+  <!-- ── 헤더 ── -->
+  <header class="np-header sticky top-0 z-50">
+    <!-- Mobile -->
+    <div class="px-4 flex items-center h-14 gap-3 md:hidden">
+      <a href="#" class="flex items-center gap-2 shrink-0">
+        <img src="img/symbol.png" width="28" height="28" alt="NextPartner" />
+        <span class="text-lg font-bold text-neutral-900 tracking-tight">NextPartner</span>
+      </a>
+      <span class="np-badge np-badge-warning">구직자</span>
+      <div class="ml-auto flex items-center gap-2">
+        <div class="w-8 h-8 rounded-full bg-primary-100 overflow-hidden shrink-0">
+          <img src="https://i.pravatar.cc/32?img=12" alt="프로필" class="w-full h-full object-cover" />
+        </div>
+        <span class="text-sm text-neutral-600">홍길동님</span>
+        <button class="flex items-center justify-center w-10 h-10 text-neutral-400 rounded-button hover:bg-neutral-50 hover:text-neutral-800 transition-colors" aria-label="로그아웃">
+          <i data-lucide="log-out" class="w-5 h-5"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Desktop -->
+    <div class="np-header-inner hidden md:flex">
+      <div class="flex items-center gap-2 shrink-0">
+        <a href="#" class="flex items-center gap-2">
+          <img src="img/symbol.png" width="32" height="32" alt="NextPartner" />
+          <span class="text-2xl font-bold text-neutral-900 tracking-tight">NextPartner</span>
+        </a>
+        <span class="np-badge np-badge-warning">구직자</span>
+      </div>
+      <nav class="np-header-nav">
+        <button class="np-btn np-btn-primary np-btn-md">이력서·자기소개서</button>
+        <button class="np-btn np-btn-primary np-btn-md">인재풀 등록</button>
+        <a class="np-nav-link">일자리</a>
+        <a class="np-nav-link">프로젝트</a>
+        <a class="np-nav-link">박람회</a>
+      </nav>
+      <div class="np-header-actions">
+        <div class="flex items-center gap-2">
+          <span class="text-base text-neutral-600">홍길동님</span>
+        </div>
+        <button class="flex items-center justify-center w-10 h-10 text-neutral-400 rounded-button hover:bg-neutral-50 hover:text-neutral-800 transition-colors" aria-label="로그아웃">
+          <i data-lucide="log-out" class="w-5 h-5"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── AI 도구 빠른 이동 ── -->
+  <div class="bg-neutral-0 border-b border-neutral-200" style="flex-shrink:0;">
+    <div class="tool-nav-scroll overflow-x-auto">
+      <div class="flex items-center gap-2 px-4 md:px-6 py-3 w-max md:w-auto md:max-w-content md:mx-auto">
+        <button class="np-chip">
+          <i data-lucide="mic" class="w-4 h-4 shrink-0"></i>
+          AI 모의 면접
+        </button>
+        <button class="np-chip">
+          <i data-lucide="pencil-line" class="w-4 h-4 shrink-0"></i>
+          AI 자기소개
+        </button>
+        <button class="np-chip">
+          <i data-lucide="building-2" class="w-4 h-4 shrink-0"></i>
+          AI 기업 브리핑
+        </button>
+        <button class="np-chip">
+          <i data-lucide="camera" class="w-4 h-4 shrink-0"></i>
+          AI 증명사진
+        </button>
+        <button class="np-chip np-chip-active" aria-current="page">
+          <i data-lucide="shirt" class="w-4 h-4 shrink-0"></i>
+          AI 복장 점검
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 채팅 레이아웃 ── -->
+  <div id="chat-layout" style="flex:1; overflow:hidden; display:flex; flex-direction:column;">
+
+    <!-- 메시지 영역 -->
+    <div id="chat-messages" class="bg-neutral-50" style="flex:1; overflow-y:auto;">
+      <div id="msg-list" class="w-full max-w-2xl mx-auto px-4 md:px-6 py-6 pb-24 md:pb-8 flex flex-col gap-5"></div>
+    </div>
+  </div>
+
+  <!-- hidden file input (body 레벨) -->
+  <input type="file" id="photo-input" accept="image/*" style="display:none;" />
+
+  <!-- ── 하단 내비게이션 ── -->
+  <nav class="np-bottom-nav md:hidden fixed bottom-0 left-0 right-0 z-50">
+    <div class="np-bottom-nav-item">
+      <i data-lucide="home" class="w-6 h-6"></i>
+      <span class="np-bottom-nav-label">홈</span>
+    </div>
+    <div class="np-bottom-nav-item">
+      <i data-lucide="briefcase" class="w-6 h-6"></i>
+      <span class="np-bottom-nav-label">일자리</span>
+    </div>
+    <div class="np-bottom-nav-item active">
+      <i data-lucide="shirt" class="w-6 h-6"></i>
+      <span class="np-bottom-nav-label">AI 복장 점검</span>
+    </div>
+    <div class="np-bottom-nav-item">
+      <i data-lucide="circle-user" class="w-6 h-6"></i>
+      <span class="np-bottom-nav-label">내 계정</span>
+    </div>
+  </nav>
+
+  <!-- ── 토스트 ── -->
+  <div class="np-toast-wrap" id="toast-wrap"></div>
+
+
+  <script>
+    /* ================================================================
+       상태
+    ================================================================ */
+    // init → waiting_job → waiting_photo → analyzing → result
+    let chatState   = 'init';
+    let jobRole     = '';   // 지원 직무
+    let companyName = '';   // 지원 기업 (선택)
+    let photoDataUrl = null;
+    let analysisResult = null;
+
+    /* ================================================================
+       DOM 참조
+    ================================================================ */
+    const msgList    = document.getElementById('msg-list');
+    const chatMsgs   = document.getElementById('chat-messages');
+    const photoInput = document.getElementById('photo-input');
+    const toastWrap  = document.getElementById('toast-wrap');
+
+    /* ================================================================
+       유틸리티
+    ================================================================ */
+    function scrollToBottom() {
+      setTimeout(() => { chatMsgs.scrollTop = chatMsgs.scrollHeight; }, 60);
+    }
+    function escHtml(str) {
+      return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+    function showToast(msg, duration = 4000) {
+      const el = document.createElement('div');
+      el.className = 'np-toast';
+      el.innerHTML = `<span>${escHtml(msg)}</span>
+        <button class="np-toast-close" onclick="this.parentElement.remove()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>`;
+      toastWrap.appendChild(el);
+      setTimeout(() => el.remove(), duration);
+    }
+
+    /* ================================================================
+       AI 아바타
+    ================================================================ */
+    const AI_AVATAR = `
+      <div class="w-10 h-10 rounded-full bg-primary-500 flex items-center justify-center shrink-0 mt-1">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20.38 3.46L16 2a4 4 0 01-8 0L3.62 3.46a2 2 0 00-1.34 2.23l.58 3.57a1 1 0 00.99.84H5v10a2 2 0 002 2h10a2 2 0 002-2V10h1.15a1 1 0 00.99-.84l.58-3.57a2 2 0 00-1.34-2.23z"/>
+        </svg>
+      </div>`;
+
+    /* ================================================================
+       메시지 렌더링
+    ================================================================ */
+    function addAI(html) {
+      const div = document.createElement('div');
+      div.className = 'flex items-start gap-3 msg-in';
+      div.innerHTML = `${AI_AVATAR}
+        <div class="flex-1 min-w-0">
+          <div style="background:white; border:1px solid #e5e5e5; border-radius:8px; padding:16px 20px;">
+            ${html}
+          </div>
+        </div>`;
+      msgList.appendChild(div);
+      scrollToBottom();
+      return div;
+    }
+
+    function addUser(text) {
+      const div = document.createElement('div');
+      div.className = 'flex justify-end msg-in';
+      div.innerHTML = `<div style="background:#ff7f65; color:white; border-radius:8px; padding:12px 16px; max-width:80%; font-size:1.125rem; line-height:1.6;">${escHtml(text)}</div>`;
+      msgList.appendChild(div);
+      scrollToBottom();
+    }
+
+    function addUserPhoto(dataUrl) {
+      const div = document.createElement('div');
+      div.className = 'flex justify-end msg-in';
+      div.innerHTML = `<div style="border-radius:8px; overflow:hidden; border:1px solid #e5e5e5; max-width:200px;">
+        <img src="${dataUrl}" alt="업로드된 복장 사진" style="width:100%; display:block;" />
+      </div>`;
+      msgList.appendChild(div);
+      scrollToBottom();
+    }
+
+    function addTyping() {
+      const div = document.createElement('div');
+      div.id = 'typing-indicator';
+      div.className = 'flex items-start gap-3';
+      div.innerHTML = `${AI_AVATAR}
+        <div style="background:white; border:1px solid #e5e5e5; border-radius:8px; padding:14px 16px; display:flex; align-items:center; gap:6px;">
+          <span class="td"></span><span class="td"></span><span class="td"></span>
+        </div>`;
+      msgList.appendChild(div);
+      scrollToBottom();
+    }
+
+    function removeTyping() {
+      const el = document.getElementById('typing-indicator');
+      if (el) el.remove();
+    }
+
+    function aiSay(html, delay = 1000) {
+      return new Promise(resolve => {
+        addTyping();
+        setTimeout(() => { removeTyping(); addAI(html); resolve(); }, delay);
+      });
+    }
+
+    /* ================================================================
+       인라인 사진 업로드 존
+    ================================================================ */
+    function renderUploadZone() {
+      return `
+        <label for="photo-input" id="upload-zone"
+          style="display:flex; flex-direction:column; align-items:center; justify-content:center;
+                 gap:10px; padding:28px 20px; margin-top:14px;
+                 border:2px dashed #e5e5e5; border-radius:8px; cursor:pointer;
+                 background:#fafafa; transition:border-color 0.15s, background 0.15s;"
+          onmouseenter="this.style.borderColor='#ff7f65'; this.style.background='#fff4f1';"
+          onmouseleave="this.style.borderColor='#e5e5e5'; this.style.background='#fafafa';">
+          <div style="width:52px; height:52px; border-radius:50%; background:#fff4f1;
+                      display:flex; align-items:center; justify-content:center;">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#ff7f65" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20.38 3.46L16 2a4 4 0 01-8 0L3.62 3.46a2 2 0 00-1.34 2.23l.58 3.57a1 1 0 00.99.84H5v10a2 2 0 002 2h10a2 2 0 002-2V10h1.15a1 1 0 00.99-.84l.58-3.57a2 2 0 00-1.34-2.23z"/>
+            </svg>
+          </div>
+          <div style="text-align:center;">
+            <p style="font-size:1.0625rem; font-weight:700; color:#1a1a1a; margin:0 0 4px;">복장 사진 첨부하기</p>
+            <p style="font-size:0.875rem; color:#aaa; margin:0;">JPG, PNG · 최대 15MB</p>
+          </div>
+        </label>
+      `;
+    }
+
+    /* ================================================================
+       직무·기업 키워드 분류
+    ================================================================ */
+    function classifyJob(role, company) {
+      const r = (role + ' ' + company).toLowerCase();
+
+      // 보수적 직군
+      const conservative = ['금융','은행','보험','공무원','공공','회계','법','세무','감사','교육','학교','병원','의료','군','경찰'];
+      // 창의적 직군
+      const creative = ['디자인','마케팅','광고','미디어','콘텐츠','패션','it','개발','스타트업','엔터','예술'];
+      // 현장/기술 직군
+      const field = ['영업','현장','생산','제조','물류','유통','배달','서비스','요식','호텔'];
+
+      if (conservative.some(k => r.includes(k))) return 'conservative';
+      if (creative.some(k => r.includes(k)))     return 'creative';
+      if (field.some(k => r.includes(k)))        return 'field';
+      return 'general';
+    }
+
+    /* ================================================================
+       복장 이미지 분석 (canvas 픽셀 분석 기반 점수 산출)
+    ================================================================ */
+    function analyzeOutfit(dataUrl, jobType) {
+      // 타임아웃 안전망: 3초 안에 이미지 로드/분석이 안 되면 fallback으로 처리
+      const safeTimeout = new Promise(resolve =>
+        setTimeout(() => resolve(fallbackScores(jobType)), 3000)
+      );
+
+      const canvasAnalysis = new Promise(resolve => {
+        const img = new Image();
+        img.onload = () => {
+          try {
+            const size = 200;
+            const scale = Math.min(1, size / Math.max(img.width || 1, img.height || 1));
+            const w = Math.max(1, Math.floor(img.width * scale));
+            const h = Math.max(1, Math.floor(img.height * scale));
+
+            const canvas = document.createElement('canvas');
+            canvas.width = w; canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) { resolve(fallbackScores(jobType)); return; }
+            ctx.drawImage(img, 0, 0, w, h);
+
+            const x1 = Math.floor(w * 0.10);
+            const y1 = Math.floor(h * 0.20);
+            const rw = Math.max(1, Math.floor(w * 0.80));
+            const rh = Math.max(1, Math.floor(h * 0.60));
+
+            let data;
+            try { data = ctx.getImageData(x1, y1, rw, rh).data; }
+            catch(e) { resolve(fallbackScores(jobType)); return; }
+
+            let totalPixels = 0, darkPixels = 0, neutralPixels = 0,
+                brightPixels = 0, saturatedPixels = 0;
+
+            for (let i = 0; i < data.length; i += 4) {
+              const r = data[i], g = data[i+1], b = data[i+2];
+              const brightness = (r + g + b) / 3;
+              const max = Math.max(r, g, b);
+              const min = Math.min(r, g, b);
+              const saturation = max === 0 ? 0 : (max - min) / max;
+              totalPixels++;
+              if (brightness < 80)    darkPixels++;
+              if (saturation < 0.15)  neutralPixels++;
+              if (brightness > 200)   brightPixels++;
+              if (saturation > 0.35)  saturatedPixels++;
+            }
+
+            if (totalPixels === 0) { resolve(fallbackScores(jobType)); return; }
+
+            const darkRatio      = darkPixels / totalPixels;
+            const neutralRatio   = neutralPixels / totalPixels;
+            const brightRatio    = brightPixels / totalPixels;
+            const saturatedRatio = saturatedPixels / totalPixels;
+
+            let formality  = Math.round(55 + darkRatio * 28 + neutralRatio * 15 - saturatedRatio * 20 + rand(-3, 3));
+            let neatness   = Math.round(60 + neutralRatio * 20 - brightRatio * 10 - saturatedRatio * 15 + rand(-4, 4));
+
+            let colorScore;
+            if (jobType === 'conservative') {
+              colorScore = Math.round(55 + neutralRatio * 25 + darkRatio * 15 - saturatedRatio * 25 + rand(-4, 4));
+            } else if (jobType === 'creative') {
+              colorScore = Math.round(60 + saturatedRatio * 15 + neutralRatio * 10 - brightRatio * 5 + rand(-4, 4));
+            } else {
+              colorScore = Math.round(58 + neutralRatio * 18 + darkRatio * 10 - saturatedRatio * 15 + rand(-4, 4));
+            }
+
+            let jobFit;
+            if (jobType === 'conservative') {
+              jobFit = Math.round(50 + darkRatio * 30 + neutralRatio * 18 - saturatedRatio * 20 + rand(-5, 5));
+            } else if (jobType === 'creative') {
+              jobFit = Math.round(58 + neutralRatio * 15 + saturatedRatio * 10 - brightRatio * 5 + rand(-5, 5));
+            } else if (jobType === 'field') {
+              jobFit = Math.round(62 + neutralRatio * 15 + rand(-5, 5));
+            } else {
+              jobFit = Math.round(60 + darkRatio * 20 + neutralRatio * 12 - saturatedRatio * 15 + rand(-5, 5));
+            }
+
+            let companyFit = Math.round((formality + jobFit) / 2 + rand(-5, 5));
+
+            formality  = clamp(formality, 55, 95);
+            neatness   = clamp(neatness, 55, 95);
+            colorScore = clamp(colorScore, 55, 95);
+            jobFit     = clamp(jobFit, 50, 95);
+            companyFit = clamp(companyFit, 50, 95);
+
+            const total = Math.round(
+              formality * 0.25 + neatness * 0.20 + colorScore * 0.15 +
+              jobFit * 0.25 + companyFit * 0.15
+            );
+
+            resolve({ formality, neatness, colorScore, jobFit, companyFit, total,
+                      darkRatio, neutralRatio, saturatedRatio, brightRatio, jobType });
+          } catch(e) { resolve(fallbackScores(jobType)); }
+        };
+        img.onerror = () => resolve(fallbackScores(jobType));
+        img.src = dataUrl;
+      });
+
+      return Promise.race([canvasAnalysis, safeTimeout]);
+    }
+
+    function rand(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+    function clamp(v, min, max) { return Math.min(max, Math.max(min, v)); }
+
+    function fallbackScores(jobType) {
+      const f = rand(65, 82), n = rand(65, 82), c = rand(60, 80), j = rand(60, 80), co = rand(60, 80);
+      return { formality:f, neatness:n, colorScore:c, jobFit:j, companyFit:co,
+        total: Math.round(f*0.25+n*0.20+c*0.15+j*0.25+co*0.15),
+        darkRatio:0.4, neutralRatio:0.5, saturatedRatio:0.1, brightRatio:0.1, jobType };
+    }
+
+    /* ================================================================
+       피드백 생성
+    ================================================================ */
+    function generateFeedback(scores) {
+      const { formality, neatness, colorScore, jobFit, companyFit, total,
+              darkRatio, neutralRatio, saturatedRatio, jobType } = scores;
+
+      // ── 총평 ──
+      let summary;
+      if (total >= 88) {
+        summary = '전반적으로 면접 복장으로 매우 훌륭합니다. 격식과 단정함을 잘 갖추고 있으며, 지원 직무에도 잘 어울리는 복장이에요.';
+      } else if (total >= 78) {
+        summary = '면접 복장으로 적절한 수준입니다. 몇 가지 포인트를 보완하면 더 좋은 인상을 줄 수 있어요.';
+      } else if (total >= 68) {
+        summary = '기본은 갖추고 있으나 면접 복장으로는 개선이 필요한 부분이 있습니다. 아래 제안을 참고해 보세요.';
+      } else {
+        summary = '면접 복장으로 다소 아쉬운 부분이 있습니다. 아래 보완 포인트를 적극 반영해 보세요.';
+      }
+
+      // ── 좋은점 ──
+      const pros = [];
+      if (formality >= 80)    pros.push('격식 있는 복장으로 면접관에게 신뢰감을 줄 수 있어요.');
+      if (neatness >= 80)     pros.push('깔끔하고 단정한 인상으로 첫인상이 좋을 것 같아요.');
+      if (darkRatio > 0.45)   pros.push('차분한 어두운 계열 색상이 진지하고 성실한 이미지를 만들어 줘요.');
+      if (neutralRatio > 0.55) pros.push('무채색 계열 활용으로 세련되고 절제된 스타일을 연출했어요.');
+      if (colorScore >= 78)   pros.push('색감 선택이 직무 특성에 잘 맞아요.');
+      if (jobFit >= 80)       pros.push('직무에 어울리는 복장으로 전문성이 느껴져요.');
+
+      if (pros.length === 0) pros.push('전체적인 복장 구성에서 기본적인 격식을 갖추고 있어요.');
+
+      // ── 보완 포인트 ──
+      const cons = [];
+      if (formality < 72)    cons.push('복장의 격식이 다소 부족해 보여요. 정장 또는 세미 정장을 고려해 보세요.');
+      if (neatness < 72)     cons.push('전체적인 정돈 상태를 다시 한번 점검해 보세요. (주름, 먼지 등)');
+      if (saturatedRatio > 0.25) cons.push('채도가 높은 색상이 눈에 띄어요. 면접에서는 차분한 색상이 유리해요.');
+      if (brightRatio > 0.3) cons.push('밝은 색상 비중이 높아 면접 자리에서 다소 가벼운 인상을 줄 수 있어요.');
+      if (colorScore < 70)   cons.push('색상 조합이 직무 이미지와 다소 맞지 않을 수 있어요.');
+      if (jobFit < 70)       cons.push('지원 직무의 분위기와 복장이 완전히 일치하지 않을 수 있어요.');
+
+      if (cons.length === 0 && total < 85) cons.push('전체적으로 양호하지만, 소품(넥타이·스카프 등)으로 완성도를 높여 보세요.');
+
+      // ── 즉시 반영 제안 ──
+      const tips = [];
+      if (jobType === 'conservative') {
+        tips.push('🔵 네이비, 차콜그레이, 블랙 계열 정장이 보수적인 직군에서 신뢰감을 줘요.');
+        tips.push('👔 흰색 또는 연한 하늘색 셔츠·블라우스로 깔끔함을 강조하세요.');
+        if (saturatedRatio > 0.2) tips.push('🎨 채도 높은 색상은 포인트 소품으로만 소량 사용하세요.');
+      } else if (jobType === 'creative') {
+        tips.push('🎨 심플한 포인트 컬러 소품(스카프, 넥타이)으로 개성을 살릴 수 있어요.');
+        tips.push('👗 기본 정장에 개성 있는 액세서리를 더해 창의적인 이미지를 연출해 보세요.');
+      } else if (jobType === 'field') {
+        tips.push('👔 말끔한 슬랙스 + 셔츠 조합으로도 충분히 단정한 인상을 줄 수 있어요.');
+        tips.push('👟 구두 또는 깔끔한 운동화로 실용성과 단정함을 동시에 챙기세요.');
+      } else {
+        tips.push('🔵 네이비 또는 그레이 계열 세미 정장이 다양한 직군에서 무난하게 잘 어울려요.');
+        tips.push('👔 상의를 정돈하고 하의 핏을 맞추면 전체 실루엣이 훨씬 좋아져요.');
+      }
+      if (neatness < 78) tips.push('🧺 면접 전날 다림질로 주름을 제거하면 단정함 점수를 크게 높일 수 있어요.');
+      tips.push('💼 면접 가방은 단색의 단정한 서류 가방이나 토트백을 권장해요.');
+
+      return { summary, pros: pros.slice(0,3), cons: cons.slice(0,3), tips: tips.slice(0,4) };
+    }
+
+    /* ================================================================
+       점수 색상
+    ================================================================ */
+    function scoreColor(score) {
+      if (score >= 85) return '#4caf50';
+      if (score >= 75) return '#ff9800';
+      if (score >= 65) return '#2196f3';
+      return '#f44336';
+    }
+
+    function scoreLabel(score) {
+      if (score >= 88) return '매우 좋음';
+      if (score >= 78) return '좋음';
+      if (score >= 68) return '보통';
+      return '개선 필요';
+    }
+
+    /* ================================================================
+       결과 카드 렌더링
+    ================================================================ */
+    function renderResultCard(scores, feedback, role, company) {
+      const { formality, neatness, colorScore, jobFit, companyFit, total } = scores;
+
+      const criteria = [
+        { label: '격식', score: formality,  desc: '복장의 공식성·격식 수준' },
+        { label: '단정함', score: neatness,  desc: '전체적인 정돈·청결 상태' },
+        { label: '색감',   score: colorScore, desc: '색상 선택의 적절성' },
+        { label: '직무 적합성', score: jobFit, desc: '지원 직무와의 어울림' },
+        { label: '기업핏',  score: companyFit, desc: '기업 문화와의 어울림' },
+      ];
+
+      const totalColor = scoreColor(total);
+
+      return `
+        <!-- 상단: 총점 + 지원 정보 -->
+        <div style="display:flex; align-items:center; gap:16px; margin-bottom:20px;">
+          <div class="score-pop" style="width:80px; height:80px; border-radius:50%; border:4px solid ${totalColor};
+            display:flex; flex-direction:column; align-items:center; justify-content:center; flex-shrink:0; background:#fff;">
+            <span style="font-size:1.625rem; font-weight:800; color:${totalColor}; line-height:1;">${total}</span>
+            <span style="font-size:0.65rem; color:#999; font-weight:600;">/ 100</span>
+          </div>
+          <div style="flex:1; min-width:0;">
+            <div style="display:flex; align-items:center; gap:6px; margin-bottom:4px;">
+              <span style="background:${totalColor}; color:white; font-size:0.7rem; font-weight:700; border-radius:4px; padding:2px 8px;">${scoreLabel(total)}</span>
+              <span style="font-size:0.8rem; color:#999;">AI 복장 분석</span>
+            </div>
+            <p style="font-size:1rem; font-weight:700; color:#1a1a1a; margin:0 0 2px;">${escHtml(role)}${company ? ' · ' + escHtml(company) : ''}</p>
+            <p style="font-size:0.875rem; color:#666; margin:0; line-height:1.5;">${escHtml(feedback.summary)}</p>
+          </div>
+        </div>
+
+        <!-- 세부 점수 -->
+        <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:20px;">
+          ${criteria.map(c => `
+            <div>
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                <div>
+                  <span style="font-size:0.95rem; font-weight:600; color:#1a1a1a;">${escHtml(c.label)}</span>
+                  <span style="font-size:0.8rem; color:#aaa; margin-left:6px;">${escHtml(c.desc)}</span>
+                </div>
+                <span style="font-size:0.95rem; font-weight:700; color:${scoreColor(c.score)};">${c.score}점</span>
+              </div>
+              <div style="background:#f0f0f0; border-radius:999px; height:7px; overflow:hidden;">
+                <div class="score-bar-fill" style="height:100%; border-radius:999px; background:${scoreColor(c.score)}; width:${c.score}%;"></div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+
+        <hr style="border:none; border-top:1px solid #f0f0f0; margin-bottom:16px;" />
+
+        <!-- 좋은점 -->
+        <div style="margin-bottom:14px;">
+          <p style="font-size:1rem; font-weight:700; color:#4caf50; margin:0 0 8px; display:flex; align-items:center; gap:6px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4caf50" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            좋은 점
+          </p>
+          <ul style="list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:6px;">
+            ${feedback.pros.map(p => `
+              <li style="display:flex; align-items:flex-start; gap:8px; font-size:0.95rem; color:#444; line-height:1.5;">
+                <span style="color:#4caf50; flex-shrink:0; margin-top:2px;">✓</span>
+                ${escHtml(p)}
+              </li>
+            `).join('')}
+          </ul>
+        </div>
+
+        <!-- 보완 포인트 -->
+        <div style="margin-bottom:14px;">
+          <p style="font-size:1rem; font-weight:700; color:#ff9800; margin:0 0 8px; display:flex; align-items:center; gap:6px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ff9800" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            보완 포인트
+          </p>
+          <ul style="list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:6px;">
+            ${feedback.cons.map(c => `
+              <li style="display:flex; align-items:flex-start; gap:8px; font-size:0.95rem; color:#444; line-height:1.5;">
+                <span style="color:#ff9800; flex-shrink:0; margin-top:2px;">!</span>
+                ${escHtml(c)}
+              </li>
+            `).join('')}
+          </ul>
+        </div>
+
+        <!-- 즉시 반영 제안 -->
+        <div style="background:#f0f7ff; border-radius:8px; padding:14px 16px;">
+          <p style="font-size:1rem; font-weight:700; color:#2196f3; margin:0 0 8px; display:flex; align-items:center; gap:6px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2196f3" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/></svg>
+            바로 반영할 수 있는 수정 제안
+          </p>
+          <ul style="list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:7px;">
+            ${feedback.tips.map(t => `
+              <li style="font-size:0.95rem; color:#333; line-height:1.5;">${escHtml(t)}</li>
+            `).join('')}
+          </ul>
+        </div>
+
+        <hr style="border:none; border-top:1px solid #f0f0f0; margin:16px 0;" />
+
+        <div style="display:flex; gap:8px;">
+          <button onclick="window.restartAll()" class="np-btn np-btn-sm np-btn-primary" style="flex:1;">새 복장으로 다시 분석</button>
+        </div>
+      `;
+    }
+
+    /* ================================================================
+       직무 입력 폼 렌더링
+    ================================================================ */
+    function renderJobForm() {
+      return `
+        <p style="font-size:1.125rem; font-weight:600; color:#1a1a1a; margin:0 0 14px;">지원 정보를 알려주세요.</p>
+        <div style="display:flex; flex-direction:column; gap:12px;">
+          <div class="np-textfield-wrap">
+            <label class="np-textfield-label" for="job-role-input">지원 직무 <span style="color:#ff7f65;">*</span></label>
+            <input type="text" id="job-role-input" class="np-textfield"
+              placeholder="예: 경리, 영업관리, 생산직, 사무직..." maxlength="40" />
+            <span class="np-textfield-hint">직무명을 입력하면 더 정확한 분석이 가능해요.</span>
+          </div>
+          <div class="np-textfield-wrap">
+            <label class="np-textfield-label" for="company-name-input">지원 기업 <span style="color:#aaa; font-weight:400;">(선택)</span></label>
+            <input type="text" id="company-name-input" class="np-textfield"
+              placeholder="예: 삼성, 중소 제조업체, 공공기관..." maxlength="40" />
+            <span class="np-textfield-hint">기업 규모·업종을 입력하면 기업핏 분석에 활용돼요.</span>
+          </div>
+          <button onclick="window.submitJobInfo()" class="np-btn np-btn-primary np-btn-md" style="width:100%; margin-top:4px;">
+            다음 단계로
+          </button>
+        </div>
+      `;
+    }
+
+    /* ================================================================
+       직무 정보 제출
+    ================================================================ */
+    window.submitJobInfo = function() {
+      if (chatState !== 'waiting_job') return;
+      const roleInput = document.getElementById('job-role-input');
+      const compInput = document.getElementById('company-name-input');
+      if (!roleInput) return;
+
+      const role = roleInput.value.trim();
+      if (!role) {
+        roleInput.style.borderColor = '#f44336';
+        roleInput.focus();
+        showToast('지원 직무를 입력해 주세요.');
+        return;
+      }
+
+      jobRole     = role;
+      companyName = compInput ? compInput.value.trim() : '';
+
+      // 폼 비활성화
+      document.querySelectorAll('#job-role-input, #company-name-input').forEach(el => { el.disabled = true; });
+      const btn = document.querySelector('[onclick="window.submitJobInfo()"]');
+      if (btn) { btn.disabled = true; btn.style.opacity = '0.5'; }
+
+      const userMsg = companyName
+        ? `지원 직무: ${role} / 기업: ${companyName}`
+        : `지원 직무: ${role}`;
+      addUser(userMsg);
+
+      chatState = 'waiting_photo';
+      aiSay(`
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
+          <div style="width:24px; height:24px; border-radius:50%; background:#e8f5e9; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4caf50" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <p style="font-size:1.125rem; font-weight:600; color:#1a1a1a; margin:0;">
+            <strong style="color:#ff7f65;">${escHtml(role)}</strong>${companyName ? ' · ' + escHtml(companyName) : ''} 정보가 입력되었습니다.
+          </p>
+        </div>
+        <p style="font-size:1.125rem; color:#666; line-height:1.6; margin:0 0 4px;">
+          이제 면접에서 입을 복장 사진을 업로드해 주세요.
+        </p>
+        <div style="background:#f5f5f5; border-radius:8px; padding:12px 14px; margin-bottom:2px; display:flex; gap:10px; align-items:flex-start;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ff9800" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0; margin-top:2px;">
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          <ul style="font-size:0.9rem; color:#666; line-height:1.7; list-style:none; padding:0; margin:0;">
+            <li>• 전신 또는 상반신이 잘 보이는 사진</li>
+            <li>• 실제 면접에서 입을 복장 그대로</li>
+            <li>• 밝은 배경이면 더 정확해요</li>
+          </ul>
+        </div>
+        ${renderUploadZone()}
+      `, 800);
+    };
+
+    /* ================================================================
+       사진 업로드 → 분석
+    ================================================================ */
+    async function handlePhotoUpload(file) {
+      if (!file) return;
+      if (chatState !== 'waiting_photo') {
+        showToast('지원 직무를 먼저 입력해 주세요.');
+        return;
+      }
+      if (!file.type.startsWith('image/')) { showToast('이미지 파일만 업로드 가능합니다. (JPG, PNG 등)'); return; }
+      if (file.size > 15 * 1024 * 1024) { showToast('15MB 이하 파일을 올려주세요.'); return; }
+
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+          photoDataUrl = e.target.result;
+          // 업로드 존 비활성화
+          const zone = document.getElementById('upload-zone');
+          if (zone) { zone.style.pointerEvents = 'none'; zone.style.opacity = '0.4'; }
+          addUserPhoto(photoDataUrl);
+
+          chatState = 'analyzing';
+
+          await aiSay(`
+            <div style="display:flex; align-items:center; gap:12px;">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ff7f65" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0; animation:spin 1.2s linear infinite;">
+                <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+              </svg>
+              <style>@keyframes spin { to { transform: rotate(360deg); } }</style>
+              <div>
+                <p style="font-size:1.125rem; font-weight:600; color:#1a1a1a; margin:0 0 4px;">복장을 분석하는 중입니다...</p>
+                <p style="font-size:0.9rem; color:#999; margin:0;">색상·격식·직무 적합성을 종합적으로 평가하고 있어요.</p>
+              </div>
+            </div>
+          `, 700);
+
+          const jobType = classifyJob(jobRole, companyName);
+          const scores  = await analyzeOutfit(photoDataUrl, jobType);
+          analysisResult = scores;
+
+          // 분석 딜레이 (자연스러운 UX)
+          await new Promise(r => setTimeout(r, 1600));
+
+          const feedback = generateFeedback(scores);
+
+          await aiSay(`
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:16px;">
+              <div style="width:28px; height:28px; border-radius:50%; background:#e8f5e9; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4caf50" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              </div>
+              <p style="font-size:1.125rem; font-weight:700; color:#1a1a1a; margin:0;">분석이 완료되었습니다!</p>
+            </div>
+            ${renderResultCard(scores, feedback, jobRole, companyName)}
+          `, 900);
+
+          chatState = 'result';
+          showToast('복장 분석이 완료되었어요! 결과를 확인해 보세요.');
+          try { lucide.createIcons(); } catch(e) {}
+        } catch(err) {
+          removeTyping();
+          chatState = 'waiting_photo';
+          const zone = document.getElementById('upload-zone');
+          if (zone) { zone.style.pointerEvents = ''; zone.style.opacity = ''; }
+          await aiSay('<p style="font-size:1.0625rem; color:#1a1a1a; margin:0 0 6px; font-weight:600;">분석 중 오류가 발생했습니다.</p><p style="font-size:0.9rem; color:#666; margin:0;">다시 사진을 업로드해 주세요.</p>', 400);
+        }
+      };
+      reader.readAsDataURL(file);
+      photoInput.value = '';
+    }
+
+    /* ================================================================
+       전체 재시작
+    ================================================================ */
+    window.restartAll = function() {
+      photoDataUrl = null; analysisResult = null;
+      jobRole = ''; companyName = '';
+      chatState = 'init';
+      msgList.innerHTML = '';
+      photoInput.value = '';
+      startConversation();
+    };
+
+    /* ================================================================
+       입력 이벤트
+    ================================================================ */
+    photoInput.addEventListener('change', function() { if (this.files[0]) handlePhotoUpload(this.files[0]); });
+
+    /* ================================================================
+       대화 시작
+    ================================================================ */
+    async function startConversation() {
+      chatState = 'init';
+
+      await aiSay(`
+        <p style="font-size:1.5rem; font-weight:700; color:#1a1a1a; margin:0 0 12px;">안녕하세요! 👋</p>
+        <p style="font-size:1.125rem; color:#666; line-height:1.7; margin:0 0 16px;">
+          <strong style="color:#ff7f65;">AI 면접복장 점검</strong> 서비스입니다.<br/>
+          복장 사진을 올리면 <strong style="color:#1a1a1a;">격식·단정함·색감·직무 적합성·기업핏</strong>을<br/>
+          100점 만점으로 분석하고 맞춤 피드백을 드려요.
+        </p>
+        <div style="background:#fff4f1; border:1px solid #ffe3dc; border-radius:8px; padding:14px 16px;">
+          <p style="font-size:0.95rem; font-weight:700; color:#ff7f65; margin:0 0 8px;">분석 항목 안내</p>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
+            ${[
+              ['📐', '격식', '복장의 공식성'],
+              ['✨', '단정함', '정돈·청결 상태'],
+              ['🎨', '색감', '색상 적절성'],
+              ['💼', '직무 적합성', '직무와의 어울림'],
+              ['🏢', '기업핏', '기업 문화 어울림'],
+            ].map(([ic, label, desc]) => `
+              <div style="display:flex; align-items:flex-start; gap:6px;">
+                <span style="flex-shrink:0;">${ic}</span>
+                <div>
+                  <span style="font-size:0.9rem; font-weight:600; color:#333;">${label}</span>
+                  <span style="font-size:0.8rem; color:#aaa; display:block;">${desc}</span>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `, 800);
+
+      chatState = 'waiting_job';
+
+      await aiSay(`
+        <p style="font-size:1.125rem; color:#666; line-height:1.6; margin:0 0 14px;">
+          먼저 지원하실 <strong style="color:#1a1a1a;">직무와 기업</strong>을 알려주세요.<br/>
+          더 정확한 맞춤 분석이 가능해요!
+        </p>
+        ${renderJobForm()}
+      `, 700);
+
+      // 엔터 이벤트 바인딩
+      setTimeout(() => {
+        const roleInput = document.getElementById('job-role-input');
+        const compInput = document.getElementById('company-name-input');
+        if (roleInput) roleInput.addEventListener('keydown', e => { if (e.key === 'Enter') window.submitJobInfo(); });
+        if (compInput) compInput.addEventListener('keydown', e => { if (e.key === 'Enter') window.submitJobInfo(); });
+        if (roleInput) roleInput.focus();
+      }, 900);
+    }
+
+    startConversation();
+  </script>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => { try { lucide.createIcons(); } catch(e) {} });
+  </script>
+
+</body>
+</html>
